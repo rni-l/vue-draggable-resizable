@@ -196,6 +196,11 @@ export default {
       type: [Boolean, String],
       default: false
     },
+    // 如果 parent 是 true 的话，根据这判断判断是否去 window 的 innerWidth 和 innerHeight
+    isParentOfWindow: {
+      type: Boolean,
+      default: false
+    },
     onDragStart: {
       type: Function,
       default: null
@@ -244,6 +249,7 @@ export default {
     if (this.maxWidth && this.minHeight > this.maxHeight) console.warn('[Vdr warn]: Invalid prop: minHeight cannot be greater than maxHeight')
 
     this.resetBoundsAndMouseState()
+    this.createCss()
   },
   mounted: function () {
     if (!this.enableNativeDrag) {
@@ -272,6 +278,83 @@ export default {
   },
 
   methods: {
+    createCss () {
+      const className = this.classNameHandle
+      const style = `
+        .${this.className}-vdr {
+          touch-action: none;
+          position: absolute;
+          box-sizing: border-box;
+          /* border: 1px dashed black; */
+        }
+        .${className} {
+          box-sizing: border-box;
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          background: #EEE;
+          border: 1px solid #333;
+        }
+        .${className}-tl {
+          top: -10px;
+          left: -10px;
+          cursor: nw-resize;
+        }
+        .${className}-tm {
+          top: -10px;
+          left: 50%;
+          margin-left: -5px;
+          cursor: n-resize;
+        }
+        .${className}-tr {
+          top: -10px;
+          right: -10px;
+          cursor: ne-resize;
+        }
+        .${className}-ml {
+          top: 50%;
+          margin-top: -5px;
+          left: -10px;
+          cursor: w-resize;
+        }
+        .${className}-mr {
+          top: 50%;
+          margin-top: -5px;
+          right: -10px;
+          cursor: e-resize;
+        }
+        .${className}-bl {
+          bottom: -10px;
+          left: -10px;
+          cursor: sw-resize;
+        }
+        .${className}-bm {
+          bottom: -10px;
+          left: 50%;
+          margin-left: -5px;
+          cursor: s-resize;
+        }
+        .${className}-br {
+          bottom: -10px;
+          right: -10px;
+          cursor: se-resize;
+        }
+        @media only screen and (max-width: 768px) {
+          [class*="${className}-"]:before {
+            content: '';
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            top: -10px;
+            position: absolute;
+          }
+        }`
+      const tag = document.createElement('style')
+      tag.type = 'text/css'
+      tag.innerHTML = style
+      document.querySelector('head').appendChild(tag)
+    },
+
     resetBoundsAndMouseState () {
       this.mouseClickPosition = { mouseX: 0, mouseY: 0, x: 0, y: 0, w: 0, h: 0 }
 
@@ -304,12 +387,18 @@ export default {
       const parent = this.parent
 
       if (parent === true) {
-        const style = window.getComputedStyle(this.$el.parentNode, null)
-
-        return [
-          parseInt(style.getPropertyValue('width'), 10),
-          parseInt(style.getPropertyValue('height'), 10)
-        ]
+        let output = []
+        if (this.isParentOfWindow) {
+          output = [window.innerWidth, window.innerHeight]
+        } else {
+          const style = window.getComputedStyle(this.$el.parentNode, null)
+          output = [
+            parseInt(style.getPropertyValue('width'), 10),
+            parseInt(style.getPropertyValue('height'), 10)
+          ]
+        }
+        console.log('output:', output)
+        return output
       }
 
       if (typeof parent === 'string') {
